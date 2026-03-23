@@ -1,0 +1,18 @@
+# --- Conda y Entornos ---
+.conda/
+env/
+venv/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# --- Python y Sistema ---
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+
+# --- Datos de la Competencia ---
+data/
+*.zip
