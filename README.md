@@ -8,6 +8,9 @@ Para iniciar todo adecuadamente:
     Ahi poner estos dos mapeos de <clave, valor>
     KAGGLE_USERNAME -> <nombre_usuario>
     KAGGLE_API_TOKEN -> <api_key>
+
+    La cuenta dueña de esa API key tiene que haber aceptado antes las reglas de la competencia en:
+    https://www.kaggle.com/c/higgs-boson/rules
     
     *(Guardarse o anotarse api_key de kaggle en algun lado por las dudas)*
 - Ejecutar el shell script anterior ("./setup.sh")
