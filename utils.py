@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from joblib import dump, load
-from sklearn.base import clone
+from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import KFold
 from sklearn.pipeline import Pipeline
@@ -14,6 +14,85 @@ from sklearn.pipeline import Pipeline
 class Modelo:
     nombre: str
     modelo: object
+
+
+class AvgJetPtTransformer(BaseEstimator, TransformerMixin):
+    """Agrega la columna avg_jet_pt: PRI_jet_all_pt / PRI_jet_num cuando hay jets, 0 si no."""
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        jet_num = X["PRI_jet_num"]
+        jet_all_pt = X["PRI_jet_all_pt"]
+        X["avg_jet_pt"] = np.where(jet_num == 0, 0.0, jet_all_pt / jet_num)
+        return X
+
+
+class LogTransformFeatures(BaseEstimator, TransformerMixin):
+    """Aplica log1p(x) a las columnas indicadas, crea columnas log_{nombre} y elimina las originales.
+
+    Preserva NaN para que el imputer los maneje despues.
+    """
+
+    def __init__(self, columns=None):
+        self.columns = columns
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        columns = self.columns or []
+        for col in columns:
+            if col not in X.columns:
+                continue
+            X[f"log_{col}"] = np.where(X[col].isna(), np.nan, np.log1p(X[col] + 1))
+            X = X.drop(columns=[col])
+        return X
+
+
+class DropFeatures(BaseEstimator, TransformerMixin):
+    """Elimina las columnas indicadas del DataFrame."""
+
+    def __init__(self, columns=None):
+        self.columns = columns
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        columns = self.columns or []
+        to_drop = [col for col in columns if col in X.columns]
+        return X.drop(columns=to_drop)
+
+
+class DropHighlyCorrelatedFeatures(BaseEstimator, TransformerMixin):
+    """Elimina features con correlacion de Pearson superior al umbral.
+
+    Aprende durante fit() cuales columnas eliminar y aplica la misma
+    eliminacion en transform().
+    """
+
+    def __init__(self, threshold=0.95):
+        self.threshold = threshold
+
+    def fit(self, X, y=None):
+        corr_matrix = X.corr().abs()
+        upper = corr_matrix.where(
+            np.triu(np.ones(corr_matrix.shape, dtype=bool), k=1)
+        )
+        self.to_drop_ = [
+            col for col in upper.columns if (upper[col] > self.threshold).any()
+        ]
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        to_drop = [col for col in self.to_drop_ if col in X.columns]
+        return X.drop(columns=to_drop)
 
 
 def ams(signal, background):
